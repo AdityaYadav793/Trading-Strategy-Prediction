@@ -12,10 +12,12 @@ def get_train_and_test_data(data, trainDataRatio=0.9):
     y_train = data_label[:train_size]
     y_test = data_label[train_size:]
     
-    X_train = pd.DataFrame({"volume": data["volume"][:train_size], "SMA": sma(data[:train_size]), "EMA": ema(data[:train_size])})
-    X_train["upBand"], X_train["midBand"], X_train["lowBand"] = bbands(data[:train_size])
-    X_test = pd.DataFrame({"volume": data["volume"][train_size:], "SMA": sma(data[train_size:]), "EMA": ema(data[train_size:])})
-    X_test["upBand"], X_test["midBand"], X_test["lowBand"] = bbands(data[train_size:])
+    train_data = data[:train_size]
+    test_data = data[train_size:]
+    X_train = pd.DataFrame({"volume": train_data["volume"], "SMA": sma(train_data), "EMA": ema(train_data), "RSI": rsi(train_data)})
+    X_train["upBand"], X_train["midBand"], X_train["lowBand"] = bbands(train_data)
+    X_test = pd.DataFrame({"volume": test_data["volume"], "SMA": sma(test_data), "EMA": ema(test_data), "RSI": rsi(test_data)})
+    X_test["upBand"], X_test["midBand"], X_test["lowBand"] = bbands(test_data)
 
     return X_train, y_train, X_test, y_test
 
@@ -31,14 +33,17 @@ def normalize(X_train, X_test):
     return X_train, X_test
 
 
-def sma(data, timePeriod=20):
+def sma(data, timePeriod=40):
     return ta.SMA(data["open"], timePeriod)
     
-def ema(data, timePeriod=20):
+def ema(data, timePeriod=40):
     return ta.EMA(data["open"], timePeriod)
     
 def bbands(data, timePeriod=20):
     return ta.BBANDS(data["open"], timePeriod)
+
+def rsi(data, timePeriod=14):
+    return ta.RSI(data["open"], timePeriod)
 
 
 def train(X_train, y_train, estimators=100, max_depth=16, learning_rate=1):
@@ -59,12 +64,12 @@ data = pd.read_csv("data.csv", usecols=featuresToUse)
 N = data.shape[0]
 
 X_train, y_train, X_test, y_test = get_train_and_test_data(data, trainDataRatio)
-for col in X_train.columns:
-    X_train.loc[:, col] = scale(X_train[col])
-    X_test.loc[:, col] = scale(X_test[col])
+# for col in X_train.columns:
+#     X_train.loc[:, col] = scale(X_train[col])
+#     X_test.loc[:, col] = scale(X_test[col])
 num_estimators = [5, 10, 20, 50, 100]
 depth = [2, 4, 8, 16, 32]
-model = train(X_train, y_train, max_depth=16, estimators=100, learning_rate=3)
+model = train(X_train, y_train, max_depth=16, estimators=50, learning_rate=1)
 pred = predict(model, X_test)
 print("Training accuracy =", np.mean(model.predict(X_train) == y_train))
 print("Test accuracy =", np.mean(pred == y_test))

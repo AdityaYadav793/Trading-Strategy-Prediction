@@ -1,16 +1,16 @@
 import bitmex
 import pandas as pd
 import matplotlib.pyplot as plt
-import time
 
-bitmex_api_key = "YrCRra1dCrI0M383_JPc11qy" 
-bitmex_api_secret = "BjWABjsE0Y1o0p-_YzZ_TbSSoOOdEQ8xFlWgl9H9CUcQCNv7"
+bitmex_api_key = "" 
+bitmex_api_secret = ""
 client = bitmex.bitmex(test=True, api_key=bitmex_api_key, api_secret=bitmex_api_secret)
-# client = bitmex.bitmex()
 
-# open = client.Position.Position_get(filter=json.dumps({'symbol': 'XBTUSD'})).result()[0]
-
-timeBucket = "1h"
-data = client.Trade.Trade_getBucketed(binSize=timeBucket, count=1000, symbol='XBTUSD', reverse=True).result()[0]
+timeBucket = "1d"
+start = 0
+data = []
+while client.Trade.Trade_getBucketed(binSize=timeBucket, count=1000, symbol='XBTUSD', start=start).result()[0] != []:
+    data += client.Trade.Trade_getBucketed(binSize=timeBucket, count=1000, symbol='XBTUSD', start=start).result()[0]
+    start += 1000
 result = pd.DataFrame({k: [v[k] for v in data] for k in data[0].keys()})
 result.to_csv("data.csv", index=False)
