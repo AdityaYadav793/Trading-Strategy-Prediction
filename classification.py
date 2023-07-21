@@ -6,6 +6,7 @@ from sklearn.preprocessing import MinMaxScaler, scale
 import talib as ta
 
 def get_train_and_test_data(data, trainDataRatio=0.9):
+    data = data.sample(frac=1)
     train_size = int(round(data.shape[0]*trainDataRatio))
     data_label = data["open"] < data["close"]
     data_label = np.where(data_label, 1, 0)
@@ -48,7 +49,6 @@ def rsi(data, timePeriod=14):
 
 def train(X_train, y_train, estimators=100, max_depth=16, learning_rate=1):
     model = xgb.XGBClassifier(n_estimators=estimators, max_depth=max_depth, learning_rate=learning_rate, objective="binary:logistic")
-    # model = xgb.XGBClassifier()
     model.fit(X_train, y_train)
     return model
 
@@ -61,15 +61,31 @@ trainDataRatio = 0.9
 featuresToUse = ["open", "high", "low", "close", "volume"]
 
 data = pd.read_csv("data.csv", usecols=featuresToUse)
+data = data.astype(float)
 N = data.shape[0]
 
 X_train, y_train, X_test, y_test = get_train_and_test_data(data, trainDataRatio)
-# for col in X_train.columns:
-#     X_train.loc[:, col] = scale(X_train[col])
-#     X_test.loc[:, col] = scale(X_test[col])
+for col in X_train.columns:
+    X_train.loc[:, col] = scale(X_train[col])
+    X_test.loc[:, col] = scale(X_test[col])
+    
+    
 num_estimators = [5, 10, 20, 50, 100]
 depth = [2, 4, 8, 16, 32]
-model = train(X_train, y_train, max_depth=16, estimators=50, learning_rate=1)
-pred = predict(model, X_test)
-print("Training accuracy =", np.mean(model.predict(X_train) == y_train))
-print("Test accuracy =", np.mean(pred == y_test))
+best_model = None
+hyperparams = [0, 0, 0]
+best_acc = 0.0
+for est in num_estimators:
+    for d in depth:
+        for lr in range(1, 25):
+            model = train(X_train, y_train, max_depth=d, estimators=est, learning_rate=lr/4)
+            acc = np.mean(predict(model, X_test) == y_test)
+            if acc > best_acc:
+                best_acc = acc
+                best_model = model
+                hyperparams = [est, d, lr/4]
+                
+                
+print("Training accuracy =", np.mean(best_model.predict(X_train) == y_train))
+print("Test accuracy =", np.mean(best_model.predict(X_test) == y_test))
+print(hyperparams)

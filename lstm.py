@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
+from keras.models import Sequential
+from keras.layers import LSTM, Dense
 
 
 trainDataRatio = 0.9
@@ -13,7 +15,7 @@ N = data.shape[0]
 train_data_size = int(round(N*trainDataRatio))
 
 # Normalizing
-scaler = MinMaxScaler()
+scaler = MinMaxScaler(feature_range=(0, 1))
 smoothing_window_size = 300
 dt = data["open"].values.reshape((-1, 1))
 for di in range(0, N, smoothing_window_size):
@@ -61,3 +63,9 @@ for i in range(input_size, N):
 X_train, X_test = X[:train_data_size], X[train_data_size:]
 y_train, y_test = y[:train_data_size], y[train_data_size:]
 
+# Building model
+model = Sequential()
+model.add(LSTM(10))
+model.add(Dense(1))
+model.compile(optimizer="adam", loss="mse", metrics=["accuracy"])
+print(model.summary())
